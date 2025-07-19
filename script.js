@@ -7,6 +7,14 @@ class ParkingSystem {
         this.renderBookings();
         // Initialize EmailJS with your public key
         emailjs.init("JdRepF3qg5_MGi7Z1");
+        // Payment modal elements
+        this.paymentModal = document.getElementById('paymentModal');
+        this.qrCodeDiv = document.getElementById('qrcode');
+        this.proceedBtn = document.getElementById('proceedToPayment');
+        this.bookNowBtn = document.getElementById('bookNow');
+        this.confirmPaymentBtn = document.getElementById('confirmPayment');
+        this.closeModalBtn = document.getElementById('closeModal');
+        this.setupPaymentListeners();
     }
 
     initializeSlots() {
@@ -59,15 +67,67 @@ class ParkingSystem {
         form.addEventListener('submit', (e) => this.handleBooking(e));
     }
 
-    handleBooking(e) {
-        e.preventDefault();
+    setupPaymentListeners() {
+        this.proceedBtn.addEventListener('click', () => this.handleProceedToPayment());
+        this.confirmPaymentBtn.addEventListener('click', () => this.handlePaymentConfirmed());
+        this.closeModalBtn.addEventListener('click', () => this.closePaymentModal());
+        // Hide modal on outside click
+        window.addEventListener('click', (e) => {
+            if (e.target === this.paymentModal) this.closePaymentModal();
+        });
+    }
 
+    handleProceedToPayment() {
+        // Validate form fields and slot selection
         const selectedSlot = document.querySelector('.parking-slot.selected');
         if (!selectedSlot) {
             alert('Please select a parking slot');
             return;
         }
+        const vehicleType = document.getElementById('vehicleType').value;
+        const duration = document.getElementById('duration').value;
+        if (!vehicleType || !duration) {
+            alert('Please fill all booking details');
+            return;
+        }
+        // Calculate amount
+        const amount = this.calculateAmount(duration, vehicleType);
+        // Generate UPI QR code
+        const upiId = '8788030512@fam'; // User's UPI ID
+        const upiUrl = `upi://pay?pa=${upiId}&pn=ParkingBooking&am=${amount}&cu=INR`;
+        this.qrCodeDiv.innerHTML = '';
+        new QRCode(this.qrCodeDiv, {
+            text: upiUrl,
+            width: 200,
+            height: 200
+        });
+        // Show modal
+        this.paymentModal.style.display = 'block';
+    }
 
+    handlePaymentConfirmed() {
+        this.paymentModal.style.display = 'none';
+        this.bookNowBtn.style.display = 'inline-block';
+        this.proceedBtn.style.display = 'none';
+        alert('Payment confirmed! You can now complete your booking.');
+    }
+
+    closePaymentModal() {
+        this.paymentModal.style.display = 'none';
+    }
+
+    handleBooking(e) {
+        e.preventDefault();
+        // Only allow booking if payment is confirmed (Book Now visible)
+        if (this.bookNowBtn.style.display === 'none') {
+            alert('Please complete the payment first.');
+            return;
+        }
+        const selectedSlot = document.querySelector('.parking-slot.selected');
+        if (!selectedSlot) {
+            alert('Please select a parking slot');
+            return;
+        }
         const booking = {
             id: Date.now(),
             vehicleNumber: document.getElementById('vehicleNumber').value,
@@ -77,10 +137,8 @@ class ParkingSystem {
             duration: document.getElementById('duration').value,
             slotNumber: selectedSlot.dataset.slot
         };
-
         // Add email field to the form
         const userEmail = document.getElementById('userEmail').value;
-
         // Send email using EmailJS
         const emailParams = {
             to_email: userEmail,
@@ -93,7 +151,6 @@ class ParkingSystem {
             slot_number: booking.slotNumber,
             total_amount: this.calculateAmount(booking.duration, booking.vehicleType)
         };
-
         emailjs.send("gaurav_service", "template_pj9oa1v", emailParams)
             .then(() => {
                 this.bookings.push(booking);
@@ -102,6 +159,9 @@ class ParkingSystem {
                 this.renderBookings();
                 e.target.reset();
                 selectedSlot.classList.remove('selected');
+                // Reset payment buttons
+                this.bookNowBtn.style.display = 'none';
+                this.proceedBtn.style.display = 'inline-block';
                 alert('Booking successful! A confirmation email has been sent.');
             })
             .catch((error) => {
