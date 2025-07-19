@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parking Booking System</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Parking Booking System</h1>
+        </header>
+        
+        <main>
+            <div class="booking-form">
+                <h2>Book Your Parking Slot</h2>
+                <form id="parkingForm">
+                    <div class="form-group">
+                        <label for="vehicleNumber">Vehicle Number:</label>
+                        <input type="text" id="vehicleNumber" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="vehicleType">Vehicle Type:</label>
+                        <select id="vehicleType" required>
+                            <option value="car">Car</option>
+                            <option value="bike">Bike</option>
+                            <option value="truck">Truck</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="entryDate">Entry Date:</label>
+                        <input type="date" id="entryDate" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="entryTime">Entry Time:</label>
+                        <input type="time" id="entryTime" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="duration">Duration (hours):</label>
+                        <input type="number" id="duration" min="1" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="userEmail">Email Address:</label>
+                        <input type="email" id="userEmail" required>
+                    </div>
+                    
+                    <div class="parking-slots">
+                        <h3>Select Parking Slot</h3>
+                        <div id="slotContainer" class="slot-container"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="submit" class="btn-book">Book Now</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="bookings-list">
+                <h2>Your Bookings</h2>
+                <div id="bookingsList"></div>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
