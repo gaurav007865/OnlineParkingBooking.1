@@ -211,5 +211,81 @@
     </div>
 
     <script src="script.js"></script>
+
+    <!-- Admin Section -->
+    <div class="admin-section">
+        <div class="admin-toggle">
+            <button id="adminToggleBtn" class="btn-admin">🔐 Admin Panel</button>
+        </div>
+        
+        <div id="adminPanel" class="admin-panel" style="display: none;">
+            <div class="admin-header">
+                <h2>🔐 Admin Panel</h2>
+                <button id="closeAdminBtn" class="btn-close-admin">&times;</button>
+            </div>
+            
+            <div id="adminLogin" class="admin-login">
+                <h3>Admin Login</h3>
+                <div class="form-group">
+                    <label for="adminId">Admin ID:</label>
+                    <input type="text" id="adminId" placeholder="Enter Admin ID">
+                </div>
+                <div class="form-group">
+                    <label for="adminPassword">Password:</label>
+                    <input type="password" id="adminPassword" placeholder="Enter Password">
+                </div>
+                <button id="loginBtn" class="btn-login">Login</button>
+            </div>
+            
+            <div id="adminDashboard" class="admin-dashboard" style="display: none;">
+                <div class="admin-stats">
+                    <h3>📊 Booking Statistics</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h4>Total Bookings</h4>
+                            <p id="totalBookings">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h4>Today's Bookings</h4>
+                            <p id="todayBookings">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h4>Total Revenue</h4>
+                            <p id="totalRevenue">₹0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h4>Available Slots</h4>
+                            <p id="availableSlots">20</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="admin-bookings">
+                    <h3>📋 All Bookings</h3>
+                    <div class="admin-controls">
+                        <input type="text" id="searchBookings" placeholder="Search bookings...">
+                        <select id="filterStatus">
+                            <option value="all">All Status</option>
+                            <option value="paid">Paid</option>
+                            <option value="pending">Pending</option>
+                        </select>
+                        <button id="exportBtn" class="btn-export">📥 Export Data</button>
+                    </div>
+                    <div id="adminBookingsList" class="admin-bookings-list">
+                        <!-- Admin bookings will be populated here -->
+                    </div>
+                </div>
+                
+                <div class="admin-actions">
+                    <h3>⚙️ Admin Actions</h3>
+                    <div class="action-buttons">
+                        <button id="clearAllBookings" class="btn-danger">🗑️ Clear All Bookings</button>
+                        <button id="resetSlots" class="btn-warning">🔄 Reset All Slots</button>
+                        <button id="backupData" class="btn-info">💾 Backup Data</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

@@ -135,6 +135,7 @@ class ParkingSystem {
         this.renderBookings();
         this.setupModal();
         this.initializeLocationSelector();
+        this.setupAdminPanel();
         
         // Initialize EmailJS with your public key
         try {
@@ -955,6 +956,240 @@ class ParkingSystem {
             `;
             bookingsList.appendChild(bookingItem);
         });
+    }
+
+    // Admin Panel Functionality
+    setupAdminPanel() {
+        // Admin credentials (you can change these)
+        this.adminCredentials = {
+            'admin1': 'password123',
+            'admin2': 'admin456',
+            'admin3': 'secure789'
+        };
+
+        // Setup admin panel event listeners
+        const adminToggleBtn = document.getElementById('adminToggleBtn');
+        const closeAdminBtn = document.getElementById('closeAdminBtn');
+        const loginBtn = document.getElementById('loginBtn');
+        const adminPanel = document.getElementById('adminPanel');
+        const adminLogin = document.getElementById('adminLogin');
+        const adminDashboard = document.getElementById('adminDashboard');
+
+        // Toggle admin panel
+        adminToggleBtn.addEventListener('click', () => {
+            adminPanel.style.display = adminPanel.style.display === 'none' ? 'block' : 'none';
+        });
+
+        // Close admin panel
+        closeAdminBtn.addEventListener('click', () => {
+            adminPanel.style.display = 'none';
+        });
+
+        // Admin login
+        loginBtn.addEventListener('click', () => {
+            const adminId = document.getElementById('adminId').value;
+            const adminPassword = document.getElementById('adminPassword').value;
+
+            if (this.adminCredentials[adminId] === adminPassword) {
+                adminLogin.style.display = 'none';
+                adminDashboard.style.display = 'block';
+                this.loadAdminDashboard();
+                alert('✅ Admin login successful!');
+            } else {
+                alert('❌ Invalid admin credentials!');
+            }
+        });
+
+        // Setup admin dashboard functionality
+        this.setupAdminDashboard();
+    }
+
+    setupAdminDashboard() {
+        // Search functionality
+        const searchBookings = document.getElementById('searchBookings');
+        searchBookings.addEventListener('input', (e) => {
+            this.filterAdminBookings(e.target.value);
+        });
+
+        // Filter functionality
+        const filterStatus = document.getElementById('filterStatus');
+        filterStatus.addEventListener('change', (e) => {
+            this.filterAdminBookings(searchBookings.value, e.target.value);
+        });
+
+        // Export functionality
+        const exportBtn = document.getElementById('exportBtn');
+        exportBtn.addEventListener('click', () => {
+            this.exportBookingData();
+        });
+
+        // Admin actions
+        const clearAllBookings = document.getElementById('clearAllBookings');
+        const resetSlots = document.getElementById('resetSlots');
+        const backupData = document.getElementById('backupData');
+
+        clearAllBookings.addEventListener('click', () => {
+            if (confirm('⚠️ Are you sure you want to clear ALL bookings? This action cannot be undone.')) {
+                this.clearAllBookings();
+            }
+        });
+
+        resetSlots.addEventListener('click', () => {
+            if (confirm('🔄 Are you sure you want to reset all parking slots?')) {
+                this.resetAllSlots();
+            }
+        });
+
+        backupData.addEventListener('click', () => {
+            this.backupBookingData();
+        });
+    }
+
+    loadAdminDashboard() {
+        // Update statistics
+        this.updateAdminStats();
+        
+        // Load all bookings
+        this.loadAdminBookings();
+    }
+
+    updateAdminStats() {
+        const totalBookings = this.bookings.length;
+        const today = new Date().toDateString();
+        const todayBookings = this.bookings.filter(booking => 
+            new Date(booking.bookingDate || booking.date).toDateString() === today
+        ).length;
+        
+        const totalRevenue = this.bookings.reduce((sum, booking) => sum + booking.amount, 0);
+        const availableSlots = 20 - this.bookings.length; // Assuming 20 total slots
+
+        document.getElementById('totalBookings').textContent = totalBookings;
+        document.getElementById('todayBookings').textContent = todayBookings;
+        document.getElementById('totalRevenue').textContent = `₹${totalRevenue}`;
+        document.getElementById('availableSlots').textContent = Math.max(0, availableSlots);
+    }
+
+    loadAdminBookings() {
+        const adminBookingsList = document.getElementById('adminBookingsList');
+        adminBookingsList.innerHTML = '';
+
+        this.bookings.sort((a, b) => new Date(b.bookingDate || b.date) - new Date(a.bookingDate || a.date));
+
+        this.bookings.forEach(booking => {
+            const bookingItem = document.createElement('div');
+            bookingItem.className = 'admin-booking-item';
+            
+            const locationInfo = booking.location ? 
+                `<p><strong>Location:</strong> ${booking.location.address}</p>` : 
+                '<p><strong>Location:</strong> Not specified</p>';
+            
+            bookingItem.innerHTML = `
+                <h4>Booking #${booking.id}</h4>
+                <div class="admin-booking-details">
+                    <p><strong>Vehicle:</strong> ${booking.vehicleNumber} (${booking.vehicleType})</p>
+                    <p><strong>Date:</strong> ${booking.date} at ${booking.time}</p>
+                    <p><strong>Duration:</strong> ${booking.duration} hours</p>
+                    <p><strong>Slot:</strong> ${booking.slotNumber}</p>
+                    <p><strong>Amount:</strong> ₹${booking.amount}</p>
+                    <p><strong>Payment:</strong> ${booking.paymentMethod} - ${booking.paymentStatus}</p>
+                    ${locationInfo}
+                    <p><strong>Booked:</strong> ${new Date(booking.bookingDate || booking.date).toLocaleString()}</p>
+                </div>
+            `;
+            adminBookingsList.appendChild(bookingItem);
+        });
+    }
+
+    filterAdminBookings(searchTerm = '', statusFilter = 'all') {
+        const adminBookingsList = document.getElementById('adminBookingsList');
+        adminBookingsList.innerHTML = '';
+
+        let filteredBookings = this.bookings.filter(booking => {
+            const matchesSearch = searchTerm === '' || 
+                booking.vehicleNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                booking.id.toString().includes(searchTerm) ||
+                booking.vehicleType.toLowerCase().includes(searchTerm.toLowerCase());
+            
+            const matchesStatus = statusFilter === 'all' || 
+                booking.paymentStatus.toLowerCase() === statusFilter.toLowerCase();
+            
+            return matchesSearch && matchesStatus;
+        });
+
+        filteredBookings.sort((a, b) => new Date(b.bookingDate || b.date) - new Date(a.bookingDate || a.date));
+
+        filteredBookings.forEach(booking => {
+            const bookingItem = document.createElement('div');
+            bookingItem.className = 'admin-booking-item';
+            
+            const locationInfo = booking.location ? 
+                `<p><strong>Location:</strong> ${booking.location.address}</p>` : 
+                '<p><strong>Location:</strong> Not specified</p>';
+            
+            bookingItem.innerHTML = `
+                <h4>Booking #${booking.id}</h4>
+                <div class="admin-booking-details">
+                    <p><strong>Vehicle:</strong> ${booking.vehicleNumber} (${booking.vehicleType})</p>
+                    <p><strong>Date:</strong> ${booking.date} at ${booking.time}</p>
+                    <p><strong>Duration:</strong> ${booking.duration} hours</p>
+                    <p><strong>Slot:</strong> ${booking.slotNumber}</p>
+                    <p><strong>Amount:</strong> ₹${booking.amount}</p>
+                    <p><strong>Payment:</strong> ${booking.paymentMethod} - ${booking.paymentStatus}</p>
+                    ${locationInfo}
+                    <p><strong>Booked:</strong> ${new Date(booking.bookingDate || booking.date).toLocaleString()}</p>
+                </div>
+            `;
+            adminBookingsList.appendChild(bookingItem);
+        });
+    }
+
+    exportBookingData() {
+        const data = {
+            exportDate: new Date().toISOString(),
+            totalBookings: this.bookings.length,
+            bookings: this.bookings
+        };
+
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        const url = URL.createObjectURL(dataBlob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `parking_bookings_${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        
+        URL.revokeObjectURL(url);
+        alert('📥 Booking data exported successfully!');
+    }
+
+    clearAllBookings() {
+        this.bookings = [];
+        localStorage.setItem('bookings', JSON.stringify(this.bookings));
+        this.updateSlotStatus();
+        this.renderBookings();
+        this.loadAdminDashboard();
+        alert('🗑️ All bookings have been cleared!');
+    }
+
+    resetAllSlots() {
+        document.querySelectorAll('.parking-slot').forEach(slot => {
+            slot.classList.remove('occupied', 'selected');
+            slot.classList.add('available');
+        });
+        alert('🔄 All parking slots have been reset!');
+    }
+
+    backupBookingData() {
+        const backup = {
+            timestamp: new Date().toISOString(),
+            bookings: this.bookings,
+            totalBookings: this.bookings.length,
+            totalRevenue: this.bookings.reduce((sum, booking) => sum + booking.amount, 0)
+        };
+
+        localStorage.setItem('parking_backup', JSON.stringify(backup));
+        alert('💾 Data backup created successfully!');
     }
 }
 
