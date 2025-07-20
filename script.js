@@ -789,7 +789,7 @@ class ParkingSystem {
             
             // Add success animation and highlight
             confirmBtn.style.animation = 'pulse 2s infinite';
-            confirmBtn.style.boxShadow = '0 0 25px rgba(40, 167, 69, 0.6)';
+            confirmBtn.style.boxShadow = '0 0 25px rgba(40, 167, 79, 0.6)';
             confirmBtn.style.transition = 'all 0.3s ease';
             
             // Setup confirm booking button with proper event listener
@@ -1225,3 +1225,31 @@ class ParkingSystem {
 document.addEventListener('DOMContentLoaded', () => {
     window.parkingSystem = new ParkingSystem();
 });
+
+// Firebase CDN scripts index.html ke <head> me hone chahiye (jaise pehle bataya)
+// Firebase initialization
+const firebaseConfig = {
+  apiKey: "AIzaSyBEDSJWyX2sK9CsrM3x4jb4VutmZ12j3GA",
+  authDomain: "parking-81ea3.firebaseapp.com",
+  projectId: "parking-81ea3",
+  storageBucket: "parking-81ea3.appspot.com",
+  messagingSenderId: "686010786257",
+  appId: "1:686010786257:web:e3fe0dcb70049e82a580f0",
+  measurementId: "G-7SNV3922LX"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+async function checkAdminLoginFirestore(adminId, adminPassword) {
+    try {
+        const doc = await db.collection('admin').doc('mainAdmin').get();
+        if (doc.exists) {
+            const data = doc.data();
+            return data.adminId === adminId && data.password === adminPassword;
+        }
+        return false;
+    } catch (error) {
+        console.error("Error checking admin credentials:", error);
+        return false;
+    }
+}
