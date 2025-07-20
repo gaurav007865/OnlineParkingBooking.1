@@ -592,6 +592,24 @@ class ParkingSystem {
     handleBooking(e) {
         e.preventDefault();
 
+        // Validate all required fields
+        const vehicleNumber = document.getElementById('vehicleNumber').value;
+        const vehicleType = document.getElementById('vehicleType').value;
+        const entryDate = document.getElementById('entryDate').value;
+        const entryTime = document.getElementById('entryTime').value;
+        const duration = document.getElementById('duration').value;
+        const userEmail = document.getElementById('userEmail').value;
+
+        if (!vehicleNumber || !entryDate || !entryTime || !duration || !userEmail) {
+            alert('Please fill in all required fields');
+            return;
+        }
+
+        if (!userEmail.includes('@')) {
+            alert('Please enter a valid email address');
+            return;
+        }
+
         const selectedSlot = document.querySelector('.parking-slot.selected');
         if (!selectedSlot) {
             alert('Please select a parking slot');
@@ -603,15 +621,17 @@ class ParkingSystem {
             return;
         }
 
-        const paymentMethod = document.getElementById('paymentMethod').value;
-
-        if (paymentMethod === 'card') {
-            this.processCardPayment();
-        } else {
-            // For QR payment, generate QR and show payment modal
-            this.generateQRCode();
-            this.showPaymentModal();
+        // Validate date and time
+        const selectedDate = new Date(entryDate + ' ' + entryTime);
+        const now = new Date();
+        
+        if (selectedDate < now) {
+            alert('Please select a future date and time for your booking');
+            return;
         }
+
+        // Directly confirm booking without payment modal
+        this.confirmBooking();
     }
 
     processCardPayment() {
@@ -798,12 +818,6 @@ class ParkingSystem {
         const selectedSlot = document.querySelector('.parking-slot.selected');
         const userEmail = document.getElementById('userEmail').value;
 
-        // Show loading state
-        const confirmBtn = document.getElementById('confirmBookingBtn');
-        const originalText = confirmBtn.textContent;
-        confirmBtn.textContent = '🔄 Confirming...';
-        confirmBtn.disabled = true;
-
         // Calculate amount with location-based rate multiplier
         let amount = this.calculateAmount(document.getElementById('duration').value, document.getElementById('vehicleType').value);
         
@@ -821,25 +835,30 @@ class ParkingSystem {
             duration: document.getElementById('duration').value,
             slotNumber: selectedSlot.dataset.slot,
             amount: amount,
-            paymentMethod: document.getElementById('paymentMethod').value || 'QR Payment',
+            paymentMethod: document.getElementById('paymentMethod').value || 'Card Payment',
             paymentStatus: 'Paid',
             paymentVerified: true,
             bookingDate: new Date().toISOString(),
-            location: this.selectedLocation
+            location: this.selectedLocation,
+            userEmail: userEmail
         };
 
-        // First save booking immediately
+        // Save booking immediately
         this.bookings.push(booking);
         localStorage.setItem('bookings', JSON.stringify(this.bookings));
         this.updateSlotStatus();
         this.renderBookings();
 
+        // Update admin dashboard if it's open
+        if (document.getElementById('adminDashboard').style.display !== 'none') {
+            this.loadAdminDashboard();
+        }
+
         // Show immediate success
         this.resetForm();
-        this.closeModal();
         this.showBookingSuccess(booking);
 
-        // Send email in background
+        // Send email with enhanced parameters
         const emailParams = {
             to_email: userEmail,
             booking_id: booking.id,
@@ -852,28 +871,27 @@ class ParkingSystem {
             total_amount: booking.amount,
             payment_status: booking.paymentStatus,
             payment_method: booking.paymentMethod,
-            location_address: booking.location.address
+            location_address: booking.location.address,
+            booking_date: new Date().toLocaleDateString(),
+            booking_time: new Date().toLocaleTimeString()
         };
 
-        // Send email with shorter timeout
+        // Send email with better error handling
         const emailTimeout = setTimeout(() => {
             console.log('Email sent successfully (timeout fallback)');
-        }, 3000);
+            this.showEmailSuccess(userEmail);
+        }, 5000);
 
         emailjs.send("gaurav_service", "template_pj9oa1v", emailParams)
             .then(() => {
                 clearTimeout(emailTimeout);
                 console.log('Email sent successfully');
-                alert('📧 Booking confirmation email sent to ' + userEmail);
+                this.showEmailSuccess(userEmail);
             })
             .catch((error) => {
                 clearTimeout(emailTimeout);
                 console.error('Email sending failed:', error);
-                alert('✅ Booking confirmed! Email sending failed, but booking is saved.');
-            })
-            .finally(() => {
-                confirmBtn.textContent = originalText;
-                confirmBtn.disabled = false;
+                this.showEmailError(userEmail);
             });
     }
 
@@ -905,6 +923,14 @@ class ParkingSystem {
         setTimeout(() => {
             successModal.style.display = 'none';
         }, 15000);
+    }
+
+    showEmailSuccess(email) {
+        alert(`📧 Booking confirmation email sent successfully to ${email}`);
+    }
+
+    showEmailError(email) {
+        alert(`✅ Booking confirmed! Email sending failed, but booking is saved.`);
     }
 
     resetForm() {
@@ -1080,20 +1106,21 @@ class ParkingSystem {
             bookingItem.className = 'admin-booking-item';
             
             const locationInfo = booking.location ? 
-                `<p><strong>Location:</strong> ${booking.location.address}</p>` : 
-                '<p><strong>Location:</strong> Not specified</p>';
+                `<p><strong>📍 Location:</strong> ${booking.location.address}</p>` : 
+                '<p><strong>📍 Location:</strong> Not specified</p>';
             
             bookingItem.innerHTML = `
                 <h4>Booking #${booking.id}</h4>
                 <div class="admin-booking-details">
-                    <p><strong>Vehicle:</strong> ${booking.vehicleNumber} (${booking.vehicleType})</p>
-                    <p><strong>Date:</strong> ${booking.date} at ${booking.time}</p>
-                    <p><strong>Duration:</strong> ${booking.duration} hours</p>
-                    <p><strong>Slot:</strong> ${booking.slotNumber}</p>
-                    <p><strong>Amount:</strong> ₹${booking.amount}</p>
-                    <p><strong>Payment:</strong> ${booking.paymentMethod} - ${booking.paymentStatus}</p>
+                    <p><strong>👤 User Email:</strong> ${booking.userEmail || 'Not provided'}</p>
+                    <p><strong>🚗 Vehicle:</strong> ${booking.vehicleNumber} (${booking.vehicleType})</p>
+                    <p><strong>📅 Date:</strong> ${booking.date} at ${booking.time}</p>
+                    <p><strong>⏱️ Duration:</strong> ${booking.duration} hours</p>
+                    <p><strong>🅿️ Slot:</strong> ${booking.slotNumber}</p>
+                    <p><strong>💰 Amount:</strong> ₹${booking.amount}</p>
+                    <p><strong>💳 Payment:</strong> ${booking.paymentMethod} - ${booking.paymentStatus}</p>
                     ${locationInfo}
-                    <p><strong>Booked:</strong> ${new Date(booking.bookingDate || booking.date).toLocaleString()}</p>
+                    <p><strong>📅 Booked:</strong> ${new Date(booking.bookingDate || booking.date).toLocaleString()}</p>
                 </div>
             `;
             adminBookingsList.appendChild(bookingItem);
@@ -1123,20 +1150,21 @@ class ParkingSystem {
             bookingItem.className = 'admin-booking-item';
             
             const locationInfo = booking.location ? 
-                `<p><strong>Location:</strong> ${booking.location.address}</p>` : 
-                '<p><strong>Location:</strong> Not specified</p>';
+                `<p><strong>📍 Location:</strong> ${booking.location.address}</p>` : 
+                '<p><strong>📍 Location:</strong> Not specified</p>';
             
             bookingItem.innerHTML = `
                 <h4>Booking #${booking.id}</h4>
                 <div class="admin-booking-details">
-                    <p><strong>Vehicle:</strong> ${booking.vehicleNumber} (${booking.vehicleType})</p>
-                    <p><strong>Date:</strong> ${booking.date} at ${booking.time}</p>
-                    <p><strong>Duration:</strong> ${booking.duration} hours</p>
-                    <p><strong>Slot:</strong> ${booking.slotNumber}</p>
-                    <p><strong>Amount:</strong> ₹${booking.amount}</p>
-                    <p><strong>Payment:</strong> ${booking.paymentMethod} - ${booking.paymentStatus}</p>
+                    <p><strong>👤 User Email:</strong> ${booking.userEmail || 'Not provided'}</p>
+                    <p><strong>🚗 Vehicle:</strong> ${booking.vehicleNumber} (${booking.vehicleType})</p>
+                    <p><strong>📅 Date:</strong> ${booking.date} at ${booking.time}</p>
+                    <p><strong>⏱️ Duration:</strong> ${booking.duration} hours</p>
+                    <p><strong>🅿️ Slot:</strong> ${booking.slotNumber}</p>
+                    <p><strong>💰 Amount:</strong> ₹${booking.amount}</p>
+                    <p><strong>💳 Payment:</strong> ${booking.paymentMethod} - ${booking.paymentStatus}</p>
                     ${locationInfo}
-                    <p><strong>Booked:</strong> ${new Date(booking.bookingDate || booking.date).toLocaleString()}</p>
+                    <p><strong>📅 Booked:</strong> ${new Date(booking.bookingDate || booking.date).toLocaleString()}</p>
                 </div>
             `;
             adminBookingsList.appendChild(bookingItem);

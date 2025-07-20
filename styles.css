@@ -100,6 +100,14 @@ input, select {
     box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6);
 }
 
+.booking-note {
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+    margin-top: 10px;
+    font-style: italic;
+}
+
 .bookings-list {
     background-color: #f8f9fa;
     padding: 30px;
